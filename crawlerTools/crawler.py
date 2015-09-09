@@ -2,6 +2,7 @@
 import urllib2
 from bs4 import BeautifulSoup
 from crawlerTools.data import mitbbs
+from crawlerTools.data import onePthreeC
 import sys
 reload(sys)
 sys.setdefaultencoding("utf-8")
@@ -10,8 +11,14 @@ sys.setdefaultencoding("utf-8")
 class Crawler(object):
 
     support_website = {
-        "mitbbs": "http://www.mitbbs.com",
-        "1p3c": "http://www.1point3acres.com/bbs/"
+        "mitbbs": {
+            "root": "http://www.mitbbs.com",
+            "boards": mitbbs.boards,
+        },
+        "1p3c": {
+            "root": "http://www.1point3acres.com/bbs/",
+            "boards": onePthreeC.boards
+        }
     }
 
     hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
@@ -21,14 +28,17 @@ class Crawler(object):
                'Accept-Language': 'en-US,en;q=0.8',
                'Connection': 'keep-alive'}
 
+
+
     def __init__(self, website):
         try:
-            self.root_url = self.support_website[website]
+            self.root_url = self.support_website[website]["root"]
+            self.boards = self.support_website[website]["boards"]
         except KeyError:
             print(website + " is not support")
             print("currently support website:")
             for key, val in self.support_website.items():
-                print(key + " : " + val)
+                print(key + " : " + val["root"])
 
     def _get_data(self, section, max_page, keywords):
         results = {}
@@ -59,7 +69,7 @@ class Crawler(object):
         sections = sections if type(sections) == list else [sections]
         keywords = keywords.strip().split(' ')
         for section in sections:
-            if section not in mitbbs.boards:
+            if section not in self.boards:
                 print(section + " is not in boards")
                 continue
             else:
