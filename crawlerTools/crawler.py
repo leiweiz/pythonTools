@@ -15,7 +15,7 @@ class Crawler(object):
             "root": "http://www.mitbbs.com",
             "boards": mitbbs.boards,
         },
-        "1p3c": {
+        "onePthreeC": {
             "root": "http://www.1point3acres.com/bbs/",
             "boards": onePthreeC.boards
         }
@@ -32,6 +32,7 @@ class Crawler(object):
 
     def __init__(self, website):
         try:
+            self.website = website
             self.root_url = self.support_website[website]["root"]
             self.boards = self.support_website[website]["boards"]
         except KeyError:
@@ -40,7 +41,7 @@ class Crawler(object):
             for key, val in self.support_website.items():
                 print(key + " : " + val["root"])
 
-    def _get_data(self, section, max_page, keywords):
+    def _get_data_mitbbs(self, section, max_page, keywords):
         results = {}
         keywords = keywords if type(keywords) == list else list(keywords)
         page = 0
@@ -65,6 +66,36 @@ class Crawler(object):
             page += 1
         return results
 
+    def _get_data_onePthreeC(self, section, max_page, keywords):
+        results = {}
+        keywords = keywords if type(keywords) == list else list(keywords)
+        page = 0
+        while page < max_page:
+            try:
+                url = self.root_url + 'forum-' + section + '-' + str(page) + '.html'
+                req = urllib2.Request(url, headers=self.hdr)
+                content = urllib2.urlopen(req).read()
+                content = BeautifulSoup(content, from_encoding="gbk")
+                for link in content.find_all('a', {'class': 's xst'}):
+                    new_url = link.get('href')
+                    title = link.string
+                    if title is None:
+                        continue
+                    for keyword in keywords:
+                        if keyword in title:
+                            results[title.strip(' \t\n\r')] = new_url
+                            break
+            except:
+                print "Unexcepted error:", sys.exc_info()[0]
+            page += 1
+        return results
+
+    def _get_data(self, en_section, max_page, keywords):
+        if self.website == "mitbbs":
+            return self._get_data_mitbbs(en_section, max_page, keywords)
+        elif self.website == "onePthreeC":
+            return self._get_data_onePthreeC(en_section, max_page, keywords)
+
     def crawl(self, sections, max_page=1, keywords=''):
         sections = sections if type(sections) == list else [sections]
         keywords = keywords.strip().split(' ')
@@ -73,14 +104,10 @@ class Crawler(object):
                 print(section + " is not in boards")
                 continue
             else:
-                en_section = mitbbs.boards[section]
+                en_section = self.boards[section]
                 results = self._get_data(en_section, max_page, keywords)
-                print("/-------" + section + "---------/")
-                for key, val in results.items():
-                    print(key)
-                    print(val)
-
+                return results
 
 if __name__ == "__main__":
-    mit = Crawler('mitbbs')
-    mit.crawl('待字闺中')
+    optc = Crawler('onePthreeC')
+    optc.crawl('身份移民', 1, '绿卡 OPT')
